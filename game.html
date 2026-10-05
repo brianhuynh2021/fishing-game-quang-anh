@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Câu Cá Hoạt Hình Đỉnh Cao - Quang Anh</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background: #0b0f19; overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none;
+        }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        canvas { background: #1a2a3a; display: block; box-shadow: 0 0 30px rgba(0,0,0,0.9); }
+
+        .ui-overlay {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 12px; pointer-events: none; z-index: 10;
+        }
+        .stat-box {
+            background: rgba(15, 23, 42, 0.9); border: 2px solid #f59e0b;
+            padding: 8px 16px; border-radius: 12px; color: white;
+            font-size: 14px; font-weight: bold; text-shadow: 1px 1px 2px #000;
+            pointer-events: auto; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
+        }
+
+        .menu-btns {
+            position: absolute; top: 15px; right: 20px;
+            display: flex; gap: 10px; z-index: 10;
+        }
+        .top-btn {
+            background: linear-gradient(to bottom, #10b981, #059669); color: white; border: 2px solid #fff;
+            padding: 8px 16px; font-size: 14px; font-weight: bold;
+            border-radius: 10px; cursor: pointer; box-shadow: 0 4px 0 #065f46;
+            transition: 0.1s;
+        }
+        .top-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .top-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #065f46; }
+        #btn-map { background: linear-gradient(to bottom, #3b82f6, #1d4ed8); box-shadow: 0 4px 0 #1e3a8a; }
+        #btn-reset { background: linear-gradient(to bottom, #ef4444, #b91c1c); box-shadow: 0 4px 0 #7f1d1d; }
+
+        .skill-panel {
+            position: absolute; bottom: 30px; left: 30px;
+            display: flex; gap: 12px; z-index: 20; pointer-events: auto;
+        }
+        .skill-btn {
+            background: linear-gradient(to bottom, #8b5cf6, #6d28d9); color: white; border: 2px solid #fff;
+            padding: 12px 18px; border-radius: 12px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 5px 0 #4c1d95; font-size: 13px; text-align: center;
+            transition: 0.1s;
+        }
+        .skill-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #4c1d95; }
+        .skill-btn:disabled { background: linear-gradient(to bottom, #4b5563, #374151); cursor: not-allowed; box-shadow: none; }
+
+        .modal {
+            display: none; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); width: 600px;
+            background: rgba(15, 23, 42, 0.98); border: 4px solid #f59e0b;
+            border-radius: 16px; padding: 25px; color: white; text-align: center;
+            z-index: 300; box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            max-height: 85vh; overflow-y: auto; backdrop-filter: blur(10px);
+        }
+        .item-row {
+            background: rgba(30, 41, 59, 0.9); margin: 10px 0; padding: 12px; border-radius: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 2px solid #334155; text-align: left; font-size: 14px;
+        }
+        .item-row button {
+            background: linear-gradient(to bottom, #f59e0b, #d97706); color: white; border: none; padding: 8px 16px;
+            font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 3px 0 #b45309;
+        }
+        .item-row button:hover { filter: brightness(1.1); }
+        .item-row button:disabled { background: #4b5563; cursor: not-allowed; box-shadow: none; }
+
+        .char-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; text-align: left; margin: 15px 0;
+            max-height: 240px; overflow-y: auto; padding-right: 5px;
+        }
+        .char-card {
+            background: rgba(30, 41, 59, 0.9); border: 2px solid #334155; padding: 10px 12px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: space-between; font-size: 13px; cursor: pointer;
+            transition: 0.2s;
+        }
+        .char-card:hover { border-color: #f59e0b; background: rgba(51, 65, 85, 0.9); }
+
+        #reel-wheel {
+            position: absolute; bottom: 30px; right: 30px;
+            width: 120px; height: 120px; background: radial-gradient(circle, #fbbf24, #d97706);
+            border: 5px solid #fff; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; box-shadow: 0 8px 0 #92400e, 0 10px 20px rgba(0,0,0,0.5); z-index: 20;
+            transition: transform 0.1s;
+        }
+        #reel-wheel:active { transform: scale(0.92) translateY(5px); box-shadow: 0 2px 0 #92400e; }
+        #reel-wheel span {
+            font-size: 15px; font-weight: bold; color: white; text-align: center; text-shadow: 1px 1px 3px #000;
+        }
+
+        .instruction {
+            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.9); font-size: 13px; text-shadow: 1px 1px 3px #000; pointer-events: none; z-index: 10;
+            background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px;
+        }
+
+        #home-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
+            z-index: 200; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; text-align: center;
+        }
+        #home-screen h1 { font-size: 50px; color: #fbbf24; text-shadow: 4px 4px 0 #000; margin-bottom: 5px; }
+        .main-menu-btn {
+            background: linear-gradient(to bottom, #f59e0b, #d97706); color: white; border: 3px solid #fff; padding: 16px 35px;
+            font-size: 20px; font-weight: bold; border-radius: 14px; cursor: pointer;
+            box-shadow: 0 6px 0 #92400e; margin: 10px; transition: 0.15s;
+        }
+        .main-menu-btn:hover { background: linear-gradient(to bottom, #fbbf24, #f59e0b); transform: scale(1.05); }
+        .main-menu-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #92400e; }
+
+        #truck-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #0f172a; z-index: 250; display: none; flex-direction: column;
+            justify-content: center; align-items: center; color: white;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- MÀN HÌNH TRANG CHỦ -->
+    <div id="home-screen">
+        <h1>🎣 GAME CÂU CÁ HOẠT HÌNH 🎣</h1>
+        <p style="font-size: 16px; color: #94a3b8; margin-bottom: 25px;">Chinh phục đại dương, săn thủy quái cùng Đội Hình Đồng Lòng Kéo Cá!</p>
+        <button class="main-menu-btn" onclick="openStartModal()">🚐 ĐI CÂU NGAY</button>
+        <button class="main-menu-btn" onclick="openMapModal()" style="background: linear-gradient(to bottom, #3b82f6, #1d4ed8); box-shadow: 0 6px 0 #1e3a8a;">🗺 Chọn Bản Đồ</button>
+        <button class="main-menu-btn" onclick="toggleModal('shop-modal')" style="background: linear-gradient(to bottom, #8b5cf6, #6d28d9); box-shadow: 0 6px 0 #4c1d95;">🛒 Cửa Hàng Cần</button>
+        <button class="main-menu-btn" onclick="toggleModal('sell-modal')" style="background: linear-gradient(to bottom, #10b981, #059669); box-shadow: 0 6px 0 #065f46;">🏠 Kho Bán Cá</button>
+    </div>
+
+    <!-- XE TẢI CHỞ ĐI CÂU -->
+    <div id="truck-screen">
+        <h2 style="color: #fbbf24; text-shadow: 2px 2px #000; font-size: 26px;">🚐 Xe Tải Chở Đội Hình (<span id="selected-team-txt" style="color:#38bdf8;">Quang Anh</span>) Đến <span id="truck-map-txt">Hồ Thường</span>...</h2>
+        <div style="font-size: 90px; margin: 25px; animation: bounce 0.4s infinite alternate;">🚚💨</div>
+        <p style="color: #94a3b8; font-size: 16px;">Đang lướt sóng ra khơi, chuẩn bị cần câu lớn...</p>
+    </div>
+
+    <div class="ui-overlay" id="game-ui" style="display:none;">
+        <div class="stat-box" onclick="returnToHome()" title="Về trang chủ">🏠 Trang Chủ</div>
+        <div class="stat-box">👥 <span id="current-team-display">Quang Anh</span></div>
+        <div class="stat-box">📍 <span id="map-name" style="color:#38bdf8;">Hồ Thường</span></div>
+        <div class="stat-box">💰 <span id="money" style="color:#4ade80;">0</span> $</div>
+        <div class="stat-box">⚖ <span id="score" style="color:#fbbf24;">0</span> kg</div>
+    </div>
+
+    <div class="menu-btns" id="game-menu-btns" style="display:none;">
+        <button class="top-btn" id="btn-map" onclick="openMapModal()">🗺 Đổi Bản Đồ</button>
+        <button class="top-btn" onclick="toggleModal('shop-modal')">🛒 Cần Câu</button>
+        <button class="top-btn" id="btn-reset" onclick="resetGameData()">🔄 Xóa Lưu</button>
+    </div>
+
+    <div class="skill-panel" id="game-skill-panel" style="display:none;">
+        <button class="skill-btn" onclick="useSkill('freeze')">❄️ Làm Choáng<br><span id="cd-freeze">Sẵn sàng</span></button>
+        <button class="skill-btn" onclick="useSkill('relax')">🍃 Giảm Căng<br><span id="cd-relax">Sẵn sàng</span></button>
+        <button class="skill-btn" onclick="useSkill('boost')">⚡ Kéo Nhanh<br><span id="cd-boost">Sẵn sàng</span></button>
+    </div>
+
+    <div id="reel-wheel" onclick="handleReelClick()" style="display:none;">
+        <span id="reel-text">THẢ CẦN</span>
+    </div>
+
+    <!-- MODAL CHỌN NHÂN VẬT & ĐỊA ĐIỂM -->
+    <div id="start-modal" class="modal">
+        <h2>🚐 Chuẩn Bị Hành Trình Đi Câu</h2>
+        <p style="text-align:left; font-weight:bold; color:#fbbf24; margin-top:8px;">1. Chọn Đội Hình (Tối đa <span style="color:#38bdf8;">3 người</span> cùng chung tay kéo cần):</p>
+        <div class="char-grid" id="character-list"></div>
+
+        <p style="text-align:left; font-weight:bold; color:#fbbf24; margin-top:12px;">2. Chọn Địa Điểm Câu:</p>
+        <div id="start-map-list" style="margin-bottom: 15px; max-height: 140px; overflow-y: auto; padding-right: 5px;"></div>
+
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button onclick="confirmStartFishing()" style="background: linear-gradient(to bottom, #10b981, #059669); padding: 12px 28px; border:none; color:white; border-radius:10px; cursor:pointer; font-weight:bold; font-size:16px; box-shadow: 0 4px 0 #065f46;">🚀 Lên Xe Xuất Phát!</button>
+            <button onclick="toggleModal('start-modal')" style="background: linear-gradient(to bottom, #ef4444, #b91c1c); padding: 12px 20px; border:none; color:white; border-radius:10px; cursor:pointer; font-weight:bold; box-shadow: 0 4px 0 #7f1d1d;">Đóng</button>
+        </div>
+    </div>
+
+    <!-- MODAL CHỌN BẢN ĐỒ -->
+    <div id="map-modal" class="modal">
+        <h2>🗺 Chọn Địa Điểm Đi Câu</h2>
+        <div id="map-select-list" style="margin: 15px 0; max-height: 250px; overflow-y: auto;"></div>
+        <button onclick="toggleModal('map-modal')" style="background: linear-gradient(to bottom, #ef4444, #b91c1c); padding: 10px 24px; border:none; color:white; border-radius:8px; cursor:pointer; font-weight:bold; box-shadow: 0 4px 0 #7f1d1d;">Đóng</button>
+    </div>
+
+    <!-- KHO BÁN CÁ -->
+    <div id="sell-modal" class="modal">
+        <h2>🏠 Khu Vực Bán Cá</h2>
+        <p style="color: #94a3b8; margin: 10px 0;">Tổng khối lượng cá đang có: <span id="home-score" style="color:#fbbf24; font-weight:bold;">0</span> kg</p>
+        <p style="color: #94a3b8; margin-bottom: 20px;">Tỷ giá quy đổi: <b>1 kg cá = 10 $</b></p>
+        <div style="margin: 20px 0;">
+            <button onclick="sellAllFish()" style="background: linear-gradient(to bottom, #10b981, #059669); color:white; border:none; padding:12px 24px; font-weight:bold; border-radius:10px; cursor:pointer; font-size:15px; box-shadow: 0 4px 0 #065f46;">🐟 Bán Toàn Bộ Cá Lấy Tiền</button>
+        </div>
+        <button onclick="toggleModal('sell-modal')" style="background: linear-gradient(to bottom, #ef4444, #b91c1c); padding: 10px 24px; border:none; color:white; border-radius:8px; cursor:pointer; font-weight:bold; box-shadow: 0 4px 0 #7f1d1d;">Đóng</button>
+    </div>
+
+    <!-- CỬA HÀNG CẦN CÂU -->
+    <div id="shop-modal" class="modal">
+        <h2>🎣 Cửa Hàng Cần Câu Đỉnh Cao</h2>
+        <p style="color: #94a3b8; margin: 10px 0;">Cần hiện tại: <span id="current-rod-name" style="color:#fbbf24; font-weight:bold;">Cần Tre Thường</span></p>
+        <div id="shop-list" style="margin: 15px 0; max-height: 250px; overflow-y: auto;"></div>
+        <button onclick="toggleModal('shop-modal')" style="background: linear-gradient(to bottom, #ef4444, #b91c1c); padding: 10px 24px; border:none; color:white; border-radius:8px; cursor:pointer; font-weight:bold; box-shadow: 0 4px 0 #7f1d1d;">Đóng</button>
+    </div>
+
+    <div class="instruction" id="game-instruction" style="display:none;">Bấm <b>Thả Cần</b> để chờ cá cắn • Cả đội cùng chung sức kéo lên khi cá vùng vẫy!</div>
+
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+    // --- HỆ THỐNG ÂM THANH (WEB AUDIO API) ---
+    let audioCtx = null;
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        try {
+            let osc = audioCtx.createOscillator();
+            let gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            let now = audioCtx.currentTime;
+
+            if (type === 'drop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.3);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'bite') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.setValueAtTime(600, now + 0.1);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'reel') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.linearRampToValueAtTime(800, now + 0.1);
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'success') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.setValueAtTime(600, now + 0.15);
+                osc.frequency.setValueAtTime(800, now + 0.3);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now); osc.stop(now + 0.5);
+            } else if (type === 'break') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(50, now + 0.4);
+                gainNode.gain.setValueAtTime(0.4, now);
+                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            }
+        } catch(e) {}
+    }
+
+    // --- GAME CANVAS & LOGIC ---
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        // FIX BUG 2: cập nhật targetHookY và hookX/hookY khi resize
+        targetHookY = canvas.height - 180;
+        if (gameState === 'IDLE') {
+            resetHook();
+        }
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    let score = 0, money = 0;
+    let rodIndex = 0;
+    let currentMapIndex = 0;
+    let ownedRods = [0];
+    let selectedTeam = ["Quang Anh"];
+    // FIX BUG 5: lưu riêng trạng thái perk "Chú Tư Thợ Điện" để không xoá khỏi team vĩnh viễn
+    let chuTuUsed = false;
+
+    const characters = [
+        { name: "Quang Anh",          perk: "Chuyên gia câu cá (Mặc định)",      color: "#3b82f6" },
+        { name: "Chiến Hữu A Thắng",  perk: "Sức kéo cực khỏe",                  color: "#ef4444" },
+        { name: "Trợ Thủ Tiệm Trà",   perk: "Tăng tỷ lệ bắt cá lớn",            color: "#10b981" },
+        { name: "Đồng Đội Siêu Sao",  perk: "Hồi chiêu kỹ năng nhanh",           color: "#8b5cf6" },
+        { name: "Thuyền Trưởng Ba",   perk: "Tăng thêm tiền khi bán cá",         color: "#f59e0b" },
+        { name: "Bà Ngoại Hiền",      perk: "Giảm lực vùng vẫy của cá",          color: "#ec4899" },
+        { name: "Cậu Út Tinh Nghịch", perk: "Tăng tốc độ kéo cần",               color: "#06b6d4" },
+        { name: "Cô Ba Sài Gòn",      perk: "Tăng tỷ lệ cắn câu nhanh",         color: "#84cc16" },
+        { name: "Chú Tư Thợ Điện",   perk: "Chống đứt dây 1 lần/lượt câu",     color: "#6366f1" },
+        { name: "Bé Mai Dễ Thương",   perk: "Nhân đôi điểm trọng lượng cá",     color: "#f43f5e" },
+        { name: "Anh Hai Lúa",        perk: "Tăng độ bền khi dây căng",          color: "#d97706" }
+    ];
+
+    function loadGame() {
+        if (localStorage.getItem("quang_anh_game_save_v4")) {
+            try {
+                let saveDat = JSON.parse(localStorage.getItem("quang_anh_game_save_v4"));
+                score         = Number(saveDat.score)         || 0;
+                money         = Number(saveDat.money)         || 0;
+                rodIndex      = Number(saveDat.rodIndex)      || 0;
+                currentMapIndex = Number(saveDat.currentMapIndex) || 0;
+                ownedRods     = saveDat.ownedRods             || [0];
+                selectedTeam  = saveDat.selectedTeam          || ["Quang Anh"];
+            } catch (e) {
+                console.log("Lỗi đọc file lưu:", e);
+            }
+        }
+    }
+
+    function saveGame() {
+        localStorage.setItem("quang_anh_game_save_v4", JSON.stringify({
+            score, money, rodIndex, currentMapIndex, ownedRods, selectedTeam
+        }));
+    }
+
+    function resetGameData() {
+        if (confirm("Bạn có chắc chắn muốn xóa toàn bộ tài sản để chơi lại từ đầu không?")) {
+            localStorage.removeItem("quang_anh_game_save_v4");
+            location.reload();
+        }
+    }
+
+    loadGame();
+
+    // FIX BUG 2: khai báo trước khi resizeCanvas dùng
+    let gameState = 'IDLE';
+    let targetHookY = 0;
+    let hookX = 0, hookY = 0;
+
+    function resetHook() {
+        hookX = canvas.width / 2;
+        hookY = 220;
+    }
+
+    let caughtFish = null;
+    let tension = 0;
+    let cdFreeze = 0, cdRelax = 0, cdBoost = 0;
+    let isFrozen = false;
+    let waterWaveOffset = 0;
+    // FIX BUG 7: lưu id timeout để có thể huỷ khi người chơi rút cần sớm
+    let biteTimeoutId = null;
+
+    // Khởi tạo canvas đúng kích thước ngay
+    resizeCanvas();
+    resetHook();
+
+    const rods = [
+        { name: "Cần Tre Thường",         cost: 0,      power: 1    },
+        { name: "Cần Carbon",              cost: 400,    power: 1.5  },
+        { name: "Cần Điện Tử",            cost: 1500,   power: 2.2  },
+        { name: "Cần Laser Hoàng Kim",    cost: 4000,   power: 3.2  },
+        { name: "Cần Thần Thánh Vạn Cân", cost: 10000,  power: 4.5  },
+        { name: "Cần Long Vương Hải Tặc", cost: 25000,  power: 6.0  },
+        { name: "Cần Ma Sói Bóng Đêm",   cost: 50000,  power: 8.0  },
+        { name: "Cần Phượng Hoàng Lửa",  cost: 100000, power: 11.0 },
+        { name: "Cần Rồng Băng Giá",     cost: 200000, power: 15.0 },
+        { name: "Cần Vô Cực Ngân Hà",    cost: 400000, power: 20.0 }
+    ];
+
+    const mapData = [
+        { name: "Hồ Thường",            sky: "#87ceeb", water: "#1e90ff", deep: "#0d47a1", fishes: [{name:"Cá Rô Phi",w:5,p:40,c:"#e67e22",s:16}, {name:"Cá Chép Vàng",w:20,p:150,c:"#f1c40f",s:24}] },
+        { name: "Hồ Bỏ Hoang",          sky: "#2c3e50", water: "#112233", deep: "#050b14", fishes: [{name:"Cá Trê Đột Biến",w:45,p:400,c:"#7f8c8d",s:28}, {name:"Thủy Quái Cổ Đại",w:120,p:950,c:"#8e44ad",s:35}] },
+        { name: "Hồ Thủy Điện",         sky: "#34495e", water: "#002b36", deep: "#001e24", fishes: [{name:"Cá Tầm Lớn",w:90,p:800,c:"#bdc3c7",s:30}, {name:"Cá Mập Tuabin",w:450,p:3000,c:"#16a085",s:40}] },
+        { name: "Sông Mekong",          sky: "#5dade2", water: "#2980b9", deep: "#1b4f72", fishes: [{name:"Cá Tra Dầu",w:180,p:1500,c:"#d35400",s:36}, {name:"Cá Hô Khổng Lồ",w:350,p:2800,c:"#e74c3c",s:42}] },
+        { name: "Vịnh Biển Xanh",       sky: "#a9cce3", water: "#2471a3", deep: "#154360", fishes: [{name:"Cá Ngừ Đại Dương",w:250,p:2200,c:"#2980b9",s:38}, {name:"Cá Kiếm Khổng Lồ",w:500,p:4500,c:"#f39c12",s:45}] },
+        { name: "Rãnh Mariana Sâu Thẳm",sky: "#1b2631", water: "#0b131d", deep: "#020508", fishes: [{name:"Cá Lồng Đèn Quỷ",w:800,p:7000,c:"#9b59b6",s:48}, {name:"Mực Khổng Lồ Kraken",w:1500,p:13000,c:"#c0392b",s:55}] },
+        { name: "Bắc Cực Băng Giá",     sky: "#d6eaf8", water: "#5499c7", deep: "#1b4f72", fishes: [{name:"Cá Voi Sừng Kỳ Mã",w:2200,p:18000,c:"#ffffff",s:58}, {name:"Cá Mập Trắng Bắc Cực",w:3000,p:25000,c:"#95a5a6",s:60}] },
+        { name: "Đầm Lầy Tử Thần",      sky: "#52be80", water: "#145a32", deep: "#092e19", fishes: [{name:"Cá Sấu Hỏa Tiễn",w:600,p:5500,c:"#27ae60",s:46}, {name:"Thủy Quái Đầm Lầy",w:1400,p:12000,c:"#1e8449",s:50}] },
+        { name: "Thác Nước Thiên Đường",sky: "#7fb3d5", water: "#1b4f72", deep: "#0f2537", fishes: [{name:"Cá Hồi Vượt Thác",w:110,p:900,c:"#ff5733",s:32}, {name:"Cá Chép Hóa Rồng",w:2000,p:16000,c:"#ffc300",s:54}] },
+        { name: "Núi Lửa Phun Trào",    sky: "#e74c3c", water: "#78281f", deep: "#3d130f", fishes: [{name:"Cá Quỷ Lửa",w:950,p:8500,c:"#b03a2e",s:48}, {name:"Rồng Lửa Dung Nham",w:4000,p:35000,c:"#ff5722",s:65}] }
+    ];
+
+    let fishes = [];
+
+    function initFishes() {
+        fishes = [];
+        let currentList = mapData[currentMapIndex].fishes;
+        for (let i = 0; i < 7; i++) {
+            let type = currentList[Math.floor(Math.random() * currentList.length)];
+            fishes.push({
+                x: Math.random() * canvas.width,
+                y: 260 + Math.random() * (canvas.height - 320),
+                vx: (Math.random() < 0.5 ? 1 : -1) * (1.2 + Math.random() * 1.5),
+                name: type.name, weight: Number(type.w), price: Number(type.p),
+                color: type.c, size: type.s
+            });
+        }
+    }
+
+    function updateUI() {
+        document.getElementById("score").innerText = isNaN(score) ? 0 : score;
+        document.getElementById("money").innerText = isNaN(money) ? 0 : money;
+        document.getElementById("map-name").innerText = mapData[currentMapIndex].name;
+        document.getElementById("current-rod-name").innerText = rods[rodIndex].name;
+        document.getElementById("home-score").innerText = isNaN(score) ? 0 : score;
+        document.getElementById("current-team-display").innerText = selectedTeam.join(", ");
+        renderShop();
+    }
+
+    function renderShop() {
+        let listHtml = "";
+        rods.forEach((r, i) => {
+            let isOwned    = ownedRods.includes(i);
+            let isEquipped = (rodIndex === i);
+            let btnText    = isEquipped ? "Đang dùng" : (isOwned ? "Dùng" : (r.cost === 0 ? "Miễn phí" : r.cost + " $"));
+            let btnAction  = isEquipped ? "" : (isOwned ? `equipRod(${i})` : `buyRod(${i})`);
+            listHtml += `<div class="item-row">
+                <div><b>${r.name}</b><br><small style="color:#38bdf8;">Sức mạnh kéo: x${r.power}</small></div>
+                <button onclick="${btnAction}" ${isEquipped ? 'disabled' : ''}>${btnText}</button>
+            </div>`;
+        });
+        document.getElementById("shop-list").innerHTML = listHtml;
+    }
+
+    function openStartModal() {
+        initAudio();
+        let charHtml = "";
+        characters.forEach((c) => {
+            let isSelected = selectedTeam.includes(c.name);
+            charHtml += `<div class="char-card" style="border-color: ${isSelected ? '#fbbf24' : '#334155'}; background: ${isSelected ? 'rgba(51,65,85,0.9)' : 'rgba(30,41,59,0.9)'};" onclick="toggleCharacterSelection('${c.name}')">
+                <div><b>${c.name}</b><br><small style="color:#94a3b8;">${c.perk}</small></div>
+                <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleCharacterSelection('${c.name}')">
+            </div>`;
+        });
+        document.getElementById("character-list").innerHTML = charHtml;
+
+        let mapHtml = "";
+        mapData.forEach((m, i) => {
+            let isSelected = (currentMapIndex === i);
+            mapHtml += `<div class="item-row" style="background: ${isSelected ? '#0f766e' : 'rgba(30,41,59,0.9)'}; padding: 8px 12px; margin: 6px 0;">
+                <div><b>🏞 ${m.name}</b></div>
+                <button onclick="selectMapFromStart(${i})">${isSelected ? 'Đang chọn' : 'Chọn'}</button>
+            </div>`;
+        });
+        document.getElementById("start-map-list").innerHTML = mapHtml;
+        toggleModal('start-modal');
+    }
+
+    function toggleCharacterSelection(name) {
+        if (selectedTeam.includes(name)) {
+            if (selectedTeam.length === 1) {
+                alert("Đội hình phải có ít nhất 1 nhân vật đi câu!");
+                return;
+            }
+            selectedTeam = selectedTeam.filter(n => n !== name);
+        } else {
+            if (selectedTeam.length >= 3) {
+                alert("Bạn chỉ được chọn tối đa 3 nhân vật cho một đội hình đi câu chung cần!");
+                return;
+            }
+            selectedTeam.push(name);
+        }
+        openStartModal();
+    }
+
+    function selectMapFromStart(idx) {
+        currentMapIndex = idx;
+        openStartModal();
+    }
+
+    // FIX BUG 11: reset toàn bộ game state khi bắt đầu chuyến câu mới
+    function resetGameState() {
+        gameState   = 'IDLE';
+        caughtFish  = null;
+        tension     = 0;
+        isFrozen    = false;
+        cdFreeze    = 0; cdRelax = 0; cdBoost = 0;
+        // FIX BUG 5: reset chuTuUsed mỗi chuyến câu mới
+        chuTuUsed   = false;
+        if (biteTimeoutId) { clearTimeout(biteTimeoutId); biteTimeoutId = null; }
+        resetHook();
+        document.getElementById("reel-text").innerText = "THẢ CẦN";
+    }
+
+    function confirmStartFishing() {
+        toggleModal('start-modal');
+        document.getElementById("home-screen").style.display = "none";
+        document.getElementById("selected-team-txt").innerText = selectedTeam.join(", ");
+        document.getElementById("truck-map-txt").innerText = mapData[currentMapIndex].name;
+        document.getElementById("truck-screen").style.display = "flex";
+
+        setTimeout(() => {
+            document.getElementById("truck-screen").style.display = "none";
+            document.getElementById("game-ui").style.display = "flex";
+            document.getElementById("game-menu-btns").style.display = "flex";
+            document.getElementById("game-skill-panel").style.display = "flex";
+            document.getElementById("reel-wheel").style.display = "flex";
+            document.getElementById("game-instruction").style.display = "block";
+            resetGameState();
+            initFishes();
+            updateUI();
+            saveGame();
+        }, 1500);
+    }
+
+    function openMapModal() {
+        initAudio();
+        let mapHtml = "";
+        mapData.forEach((m, i) => {
+            let isSelected = (currentMapIndex === i);
+            mapHtml += `<div class="item-row" style="background: ${isSelected ? '#0f766e' : 'rgba(30,41,59,0.9)'};">
+                <div><b>🏞 ${m.name}</b></div>
+                <button onclick="selectMap(${i})">${isSelected ? 'Đang chọn' : 'Chọn'}</button>
+            </div>`;
+        });
+        document.getElementById("map-select-list").innerHTML = mapHtml;
+        toggleModal('map-modal');
+    }
+
+    function selectMap(idx) {
+        currentMapIndex = idx;
+        initFishes();
+        updateUI();
+        saveGame();
+        toggleModal('map-modal');
+    }
+
+    // FIX BUG 11: reset game state khi về trang chủ
+    function returnToHome() {
+        resetGameState();
+        document.getElementById("game-ui").style.display          = "none";
+        document.getElementById("game-menu-btns").style.display   = "none";
+        document.getElementById("game-skill-panel").style.display = "none";
+        document.getElementById("reel-wheel").style.display       = "none";
+        document.getElementById("game-instruction").style.display = "none";
+        document.getElementById("home-screen").style.display      = "flex";
+    }
+
+    function toggleModal(id) {
+        initAudio();
+        let modal = document.getElementById(id);
+        if (id === 'sell-modal') {
+            document.getElementById("home-score").innerText = isNaN(score) ? 0 : score;
+        }
+        modal.style.display = modal.style.display === "block" ? "none" : "block";
+    }
+
+    function sellAllFish() {
+        if (score <= 0) {
+            alert("Bạn không có kg cá nào để bán!");
+            return;
+        }
+        let multiplier  = selectedTeam.includes("Thuyền Trưởng Ba") ? 1.3 : 1.0;
+        let earnedMoney = Math.floor(score * 10 * multiplier);
+        money += earnedMoney;
+        playSound('success');
+        alert(`🏠 Cả đội đã bán toàn bộ ${score} kg cá và nhận được ${earnedMoney} $!${multiplier > 1 ? ' (Đã cộng thêm tiền thưởng từ Thuyền Trưởng Ba)' : ''}`);
+        score = 0;
+        updateUI();
+        saveGame();
+        toggleModal('sell-modal');
+    }
+
+    function buyRod(idx) {
+        let r = rods[idx];
+        if (money >= r.cost || r.cost === 0) {
+            money = Number(money) - Number(r.cost);
+            ownedRods.push(idx);
+            rodIndex = idx;
+            playSound('success');
+            updateUI();
+            saveGame();
+            alert("Đã mua và trang bị " + r.name + " thành công!");
+        } else {
+            alert("Bạn không đủ tiền! Hãy vào Kho Bán Cá để bán cá lấy tiền.");
+        }
+    }
+
+    function equipRod(idx) {
+        rodIndex = idx;
+        playSound('success');
+        updateUI();
+        saveGame();
+    }
+
+    function catchFishSuccess(fromBoost) {
+        let fWeight = Number(caughtFish.weight);
+        if (selectedTeam.includes("Bé Mai Dễ Thương")) fWeight *= 2;
+        let fName = caughtFish.name;
+        score = Number(score) + fWeight;
+        playSound('success');
+        updateUI();
+        saveGame();
+        alert(`🎉 Cả đội đồng lòng kéo thành công ${fName} (${fWeight}kg)! Vào Kho Bán Cá để bán lấy tiền.`);
+        caughtFish = null;
+        gameState  = 'IDLE';
+        // FIX BUG 1 & BUG 6: reset hook về vị trí trung tâm sau mỗi lần câu
+        resetHook();
+        document.getElementById("reel-text").innerText = "THẢ CẦN";
+    }
+
+    function handleReelClick() {
+        initAudio();
+        let reelText = document.getElementById("reel-text");
+
+        if (gameState === 'IDLE') {
+            gameState = 'DROPPING';
+            resetHook();
+            tension = 0;
+            playSound('drop');
+            reelText.innerText = "ĐANG THẢ...";
+
+        } else if (gameState === 'WAITING') {
+            // FIX BUG 7: huỷ timeout cắn câu khi người chơi rút cần sớm
+            if (biteTimeoutId) { clearTimeout(biteTimeoutId); biteTimeoutId = null; }
+            gameState = 'IDLE';
+            resetHook();
+            reelText.innerText = "THẢ CẦN";
+
+        } else if (gameState === 'HOOKED' && caughtFish) {
+            let speedBonus = selectedTeam.includes("Cậu Út Tinh Nghịch") ? 1.4 : 1.0;
+            let rodPower   = rods[rodIndex].power * speedBonus;
+            hookY -= 30 * rodPower;
+
+            let fishWeightReduction = selectedTeam.includes("Bà Ngoại Hiền") ? 0.8 : 1.0;
+            tension += (Number(caughtFish.weight) / 160) * fishWeightReduction / rodPower;
+            playSound('reel');
+
+            let wheel = document.getElementById("reel-wheel");
+            wheel.style.transform = "rotate(45deg)";
+            setTimeout(() => wheel.style.transform = "rotate(0deg)", 100);
+
+            if (hookY <= 220) {
+                catchFishSuccess(false);
+            }
+        }
+    }
+
+    function useSkill(type) {
+        initAudio();
+        let cooldownReduction = selectedTeam.includes("Đồng Đội Siêu Sao") ? 0.7 : 1.0;
+
+        if (type === 'freeze' && cdFreeze <= 0) {
+            isFrozen = true;
+            cdFreeze = Math.floor(10 * cooldownReduction);
+            playSound('success');
+            setTimeout(() => { isFrozen = false; }, 3500);
+
+        } else if (type === 'relax' && cdRelax <= 0) {
+            tension = Math.max(0, tension - 45);
+            cdRelax = Math.floor(8 * cooldownReduction);
+            playSound('success');
+
+        } else if (type === 'boost' && cdBoost <= 0 && caughtFish) {
+            hookY -= 180;
+            cdBoost = Math.floor(12 * cooldownReduction);
+            // FIX BUG 8: phát âm thanh thành công khi boost bắt được cá
+            playSound('success');
+            if (hookY <= 220) {
+                catchFishSuccess(true);
+            }
+        }
+    }
+
+    setInterval(() => {
+        if (cdFreeze > 0) cdFreeze--;
+        if (cdRelax  > 0) cdRelax--;
+        if (cdBoost  > 0) cdBoost--;
+        document.getElementById("cd-freeze").innerText = cdFreeze > 0 ? cdFreeze + "s" : "Sẵn sàng";
+        document.getElementById("cd-relax").innerText  = cdRelax  > 0 ? cdRelax  + "s" : "Sẵn sàng";
+        document.getElementById("cd-boost").innerText  = cdBoost  > 0 ? cdBoost  + "s" : "Sẵn sàng";
+    }, 1000);
+
+    function update() {
+        waterWaveOffset += 0.05;
+
+        if (gameState === 'DROPPING') {
+            hookY += 10;
+            // FIX BUG 1: hook di chuyển thẳng đứng, hookX bám theo đường dây
+            hookX = canvas.width / 2;
+
+            if (hookY >= targetHookY) {
+                gameState = 'WAITING';
+                hookY = targetHookY;
+                document.getElementById("reel-text").innerText = "CHỜ CÁ CẮN...";
+
+                let waitTime = selectedTeam.includes("Cô Ba Sài Gòn") ? 800 : 1200;
+
+                // FIX BUG 7: lưu id timeout để có thể huỷ
+                biteTimeoutId = setTimeout(() => {
+                    biteTimeoutId = null;
+                    if (gameState !== 'WAITING') return;
+
+                    let currentList = mapData[currentMapIndex].fishes;
+                    let selected = currentList[Math.floor(Math.random() * currentList.length)];
+                    if (selectedTeam.includes("Trợ Thủ Tiệm Trà") && Math.random() < 0.4) {
+                        selected = currentList[currentList.length - 1];
+                    }
+                    caughtFish = {
+                        name:   selected.name,
+                        weight: Number(selected.w),
+                        price:  Number(selected.p),
+                        color:  selected.c,
+                        size:   selected.s,
+                        x:      canvas.width / 2,
+                        y:      canvas.height - 200
+                    };
+                    hookX = caughtFish.x;
+                    gameState = 'HOOKED';
+                    tension = 25;
+                    playSound('bite');
+                    document.getElementById("reel-text").innerText = "KÉO LÊN!";
+                }, waitTime + Math.random() * 1000);
+            }
+
+        } else if (gameState === 'HOOKED') {
+            let powerBonus   = selectedTeam.includes("Chiến Hữu A Thắng") ? 0.8 : 1.0;
+            let hieuSuatDay  = selectedTeam.includes("Anh Hai Lúa") ? 0.85 : 1.0;
+
+            if (!isFrozen && caughtFish) {
+                tension += (Number(caughtFish.weight) / 500) * powerBonus * hieuSuatDay;
+            }
+            tension -= 0.12;
+            if (tension < 0) tension = 0;
+
+            if (tension >= 100) {
+                // FIX BUG 5: dùng biến chuTuUsed thay vì xoá khỏi selectedTeam
+                if (selectedTeam.includes("Chú Tư Thợ Điện") && !chuTuUsed) {
+                    chuTuUsed = true;
+                    tension = 50;
+                    alert("⚡ Chú Tư Thợ Điện đã kịp thời hàn mạch điện cứu dây câu khỏi đứt! (1 lần/lượt)");
+                } else {
+                    playSound('break');
+                    alert("💥 Đứt dây câu do cá quá khỏe vùng vẫy! Cần xịn hơn hoặc kỹ năng tốt hơn.");
+                    caughtFish = null;
+                    gameState  = 'IDLE';
+                    // FIX BUG 1 & BUG 6: reset hook sau khi đứt dây
+                    resetHook();
+                    document.getElementById("reel-text").innerText = "THẢ CẦN";
+                }
+            }
+            if (caughtFish) {
+                hookX = caughtFish.x;
+            }
+        }
+
+        // FIX BUG 4: cá bị câu được tạo riêng, xoá khỏi đàn để tránh nhân đôi hình
+        fishes.forEach(fish => {
+            fish.x += fish.vx;
+            if (fish.x > canvas.width  + 80) fish.x = -80;
+            if (fish.x < -80)                fish.x = canvas.width + 80;
+        });
+    }
+
+    function draw() {
+        let map = mapData[currentMapIndex];
+
+        // 1. Bầu trời
+        ctx.fillStyle = map.sky;
+        ctx.fillRect(0, 0, canvas.width, 180);
+
+        // 2. Bờ đất & Cầu tàu
+        ctx.fillStyle = "#654321";
+        ctx.fillRect(0, 150, canvas.width, 50);
+        ctx.fillStyle = "#2ecc71";
+        ctx.fillRect(0, 150, canvas.width, 14);
+
+        ctx.fillStyle = "#8b5a2b";
+        ctx.fillRect(canvas.width / 2 - 160, 164, 320, 20);
+        ctx.strokeStyle = "#5c3a21";
+        ctx.lineWidth = 2;
+        for (let i = -140; i <= 140; i += 30) {
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2 + i, 164);
+            ctx.lineTo(canvas.width / 2 + i, 184);
+            ctx.stroke();
+        }
+
+        // 3. Nước & Chiều sâu đại dương
+        let gradWater = ctx.createLinearGradient(0, 184, 0, canvas.height);
+        gradWater.addColorStop(0, map.water);
+        gradWater.addColorStop(1, map.deep);
+        ctx.fillStyle = gradWater;
+        ctx.fillRect(0, 184, canvas.width, canvas.height - 184);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 184);
+        for (let i = 0; i < canvas.width; i += 40) {
+            let waveY = 184 + Math.sin(waterWaveOffset + i * 0.05) * 4;
+            ctx.lineTo(i + 20, waveY + 3);
+            ctx.lineTo(i + 40, waveY);
+        }
+        ctx.stroke();
+
+        // 4. Đội hình cầm chung một cần câu lớn
+        ctx.save();
+        let teamColors = selectedTeam.map(name => characters.find(c => c.name === name)?.color || "#3b82f6");
+
+        let baseRodX = canvas.width / 2 + 50;
+        let baseRodY = 130;
+
+        if (gameState === 'HOOKED') {
+            let shake = Math.sin(Date.now() / 35) * 10;
+            baseRodX += shake;
+            baseRodY += Math.cos(Date.now() / 35) * 5;
+        }
+
+        selectedTeam.forEach((memberName, idx) => {
+            let charX     = baseRodX - (selectedTeam.length - idx) * 38;
+            let charY     = 142;
+            let charColor = teamColors[idx];
+
+            ctx.fillStyle = charColor;
+            ctx.fillRect(charX - 13, charY - 25, 26, 35);
+            ctx.fillStyle = "#ffdbac";
+            ctx.beginPath();
+            ctx.arc(charX, charY - 32, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#e67e22";
+            ctx.beginPath();
+            ctx.ellipse(charX, charY - 39, 13, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = charColor;
+            ctx.fillRect(charX + 5, charY - 18, 20, 6);
+            ctx.fillStyle = "white";
+            ctx.font = "bold 11px 'Segoe UI', sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(memberName, charX, charY + 22);
+        });
+
+        ctx.strokeStyle = "#8b5a2b";
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        let startHandleX = baseRodX - selectedTeam.length * 38;
+        ctx.moveTo(startHandleX, 135);
+        ctx.lineTo(baseRodX + 40, baseRodY - 50);
+        ctx.stroke();
+        ctx.restore();
+
+        // FIX BUG 10: rodTip dùng baseRodX tĩnh (không shake) để dây câu không bị lệch
+        let rodTipX = canvas.width / 2 + 50 + 40;
+        let rodTipY = 130 - 50; // = 80
+
+        // 5. Dây câu
+        ctx.strokeStyle = "rgba(255,255,255,0.8)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(rodTipX, rodTipY);
+        ctx.lineTo(hookX, hookY);
+        ctx.stroke();
+
+        // 6. Cá mắc câu
+        if (gameState === 'HOOKED' && caughtFish) {
+            let time = Date.now() / 50;
+            let wiggleAngle = Math.sin(time * 1.2) * 0.5;
+            let scaleWiggle = 1 + Math.sin(time * 1.8) * 0.15;
+
+            ctx.save();
+            ctx.translate(hookX, hookY);
+            ctx.rotate(wiggleAngle);
+
+            ctx.fillStyle = caughtFish.color;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, caughtFish.size * scaleWiggle, (caughtFish.size * 0.65) / scaleWiggle, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            let tailWag = Math.sin(time * 2) * 14;
+            ctx.beginPath();
+            ctx.moveTo(-caughtFish.size, 0);
+            ctx.lineTo(-caughtFish.size - 22, -15 + tailWag);
+            ctx.lineTo(-caughtFish.size - 22,  15 + tailWag);
+            ctx.closePath();
+            ctx.fillStyle = caughtFish.color;
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.arc(caughtFish.size * 0.45, -6, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "black";
+            ctx.beginPath();
+            ctx.arc(caughtFish.size * 0.45, -6, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            for (let i = 0; i < 6; i++) {
+                let bx = hookX + Math.sin(time + i * 1.5) * (caughtFish.size + 20);
+                let by = hookY + Math.cos(time * 1.2 + i) * (caughtFish.size + 15);
+                ctx.fillStyle = "rgba(255,255,255,0.75)";
+                ctx.beginPath();
+                ctx.arc(bx, by, 3 + (i % 3), 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "bold 15px 'Segoe UI', sans-serif";
+            ctx.textAlign = "center";
+            let displayW = selectedTeam.includes("Bé Mai Dễ Thương") ? caughtFish.weight * 2 : caughtFish.weight;
+            ctx.fillText(`🔥 Cả đội đang gồng sức kéo ${caughtFish.name} (${displayW}kg)!`, hookX, hookY - caughtFish.size - 22);
+
+        } else {
+            // Móc câu bình thường — chỉ hiển thị khi đang DROPPING hoặc WAITING
+            if (gameState === 'DROPPING' || gameState === 'WAITING') {
+                ctx.fillStyle = "#fbbf24";
+                ctx.beginPath();
+                ctx.arc(hookX, hookY, 7, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = "#fff";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        // 7. Đàn cá bơi dưới nước (FIX BUG 4: không liên quan đến caughtFish nên luôn vẽ đủ)
+        fishes.forEach(fish => {
+            ctx.fillStyle = fish.color;
+            ctx.beginPath();
+            ctx.ellipse(fish.x, fish.y, fish.size, fish.size * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // 8. Thanh độ căng dây
+        if (gameState === 'HOOKED') {
+            ctx.fillStyle = "rgba(15,23,42,0.9)";
+            ctx.fillRect(canvas.width / 2 - 130, canvas.height - 85, 260, 28);
+            ctx.strokeStyle = "#f59e0b";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(canvas.width / 2 - 130, canvas.height - 85, 260, 28);
+
+            let barColor = tension > 80 ? "#ef4444" : "#10b981";
+            ctx.fillStyle = barColor;
+            ctx.fillRect(canvas.width / 2 - 126, canvas.height - 81, (Math.min(tension, 100) / 100) * 252, 20);
+
+            ctx.fillStyle = "white";
+            ctx.font = "bold 13px 'Segoe UI', sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("⚠️ ĐỘ CĂNG DÂY (" + Math.floor(tension) + "%)", canvas.width / 2, canvas.height - 67);
+        }
+    }
+
+    function gameLoop() {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Khởi tạo cá sau khi canvas đã đúng kích thước
+    initFishes();
+    updateUI();
+    gameLoop();
+</script>
+
+</body>
+</html>
