@@ -362,6 +362,8 @@
     let waterWaveOffset = 0;
     // FIX BUG 7: lưu id timeout để có thể huỷ khi người chơi rút cần sớm
     let biteTimeoutId = null;
+    // Chữ "+kg" bay lên khi câu được cá
+    let floatTexts = [];
 
     // Khởi tạo canvas đúng kích thước ngay
     resizeCanvas();
@@ -370,14 +372,14 @@
     const rods = [
         { name: "Cần Tre Thường",         cost: 0,      power: 1    },
         { name: "Cần Carbon",              cost: 400,    power: 1.5  },
-        { name: "Cần Điện Tử",            cost: 1500,   power: 2.2  },
-        { name: "Cần Laser Hoàng Kim",    cost: 4000,   power: 3.2  },
-        { name: "Cần Thần Thánh Vạn Cân", cost: 10000,  power: 4.5  },
-        { name: "Cần Long Vương Hải Tặc", cost: 25000,  power: 6.0  },
-        { name: "Cần Ma Sói Bóng Đêm",   cost: 50000,  power: 8.0  },
-        { name: "Cần Phượng Hoàng Lửa",  cost: 100000, power: 11.0 },
-        { name: "Cần Rồng Băng Giá",     cost: 200000, power: 15.0 },
-        { name: "Cần Vô Cực Ngân Hà",    cost: 400000, power: 20.0 }
+        { name: "Cần Điện Tử",            cost: 0,   power: 2.2  },
+        { name: "Cần Laser Hoàng Kim",    cost: 0,   power: 3.2  },
+        { name: "Cần Thần Thánh Vạn Cân", cost: 0,  power: 4.5  },
+        { name: "Cần Long Vương Hải Tặc", cost: 0,  power: 6.0  },
+        { name: "Cần Ma Sói Bóng Đêm",   cost: 0,  power: 8.0  },
+        { name: "Cần Phượng Hoàng Lửa",  cost: 0, power: 11.0 },
+        { name: "Cần Rồng Băng Giá",     cost: 0, power: 15.0 },
+        { name: "Cần Vô Cực Ngân Hà",    cost: 0, power: 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999900000000000000000000000000000000009999999999999999999999999999999999999999999999999999999990000000000000000000000000000000000000000000009999999999999999999999999999999999999999999999999999999991000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0 }
     ];
 
     const mapData = [
@@ -390,7 +392,7 @@
         { name: "Bắc Cực Băng Giá",     sky: "#d6eaf8", water: "#5499c7", deep: "#1b4f72", fishes: [{name:"Cá Voi Sừng Kỳ Mã",w:2200,p:18000,c:"#ffffff",s:58}, {name:"Cá Mập Trắng Bắc Cực",w:3000,p:25000,c:"#95a5a6",s:60}] },
         { name: "Đầm Lầy Tử Thần",      sky: "#52be80", water: "#145a32", deep: "#092e19", fishes: [{name:"Cá Sấu Hỏa Tiễn",w:600,p:5500,c:"#27ae60",s:46}, {name:"Thủy Quái Đầm Lầy",w:1400,p:12000,c:"#1e8449",s:50}] },
         { name: "Thác Nước Thiên Đường",sky: "#7fb3d5", water: "#1b4f72", deep: "#0f2537", fishes: [{name:"Cá Hồi Vượt Thác",w:110,p:900,c:"#ff5733",s:32}, {name:"Cá Chép Hóa Rồng",w:2000,p:16000,c:"#ffc300",s:54}] },
-        { name: "Núi Lửa Phun Trào",    sky: "#e74c3c", water: "#78281f", deep: "#3d130f", fishes: [{name:"Cá Quỷ Lửa",w:950,p:8500,c:"#b03a2e",s:48}, {name:"Rồng Lửa Dung Nham",w:4000,p:35000,c:"#ff5722",s:65}] }
+        { name: "Núi Lửa Phun Trào",    sky: "#e74c3c", water: "#78281f", deep: "#3d130f", fishes: [{name:"Cá Quỷ Lửa",w:1,p:1,c:"#b03a2e",s:48}, {name:"Rồng Lửa Dung Nham",w:4000,p:35,c:"#ff5722",s:0}] }
     ];
 
     let fishes = [];
@@ -601,6 +603,7 @@
         if (selectedTeam.includes("Bé Mai Dễ Thương")) fWeight *= 2;
         let fName = caughtFish.name;
         score = Number(score) + fWeight;
+        floatTexts.push({ text: `+${fWeight}kg`, x: hookX, y: hookY, life: 60, color: caughtFish.isRare ? "#ffd700" : "#ffffff" });
         playSound('success');
         updateUI();
         saveGame();
@@ -709,11 +712,14 @@
                     if (selectedTeam.includes("Trợ Thủ Tiệm Trà") && Math.random() < 0.4) {
                         selected = currentList[currentList.length - 1];
                     }
+                    // Cá hiếm: 5% cơ hội, nặng gấp 3, phát sáng vàng
+                    let isRare = Math.random() < 0.05;
                     caughtFish = {
-                        name:   selected.name,
-                        weight: Number(selected.w),
+                        name:   isRare ? "✨ " + selected.name + " Hiếm" : selected.name,
+                        weight: Number(selected.w) * (isRare ? 3 : 1),
                         price:  Number(selected.p),
-                        color:  selected.c,
+                        isRare: isRare,
+                        color:  isRare ? "#ffd700" : selected.c,
                         size:   selected.s,
                         x:      canvas.width / 2,
                         y:      canvas.height - 200
@@ -873,6 +879,10 @@
             ctx.save();
             ctx.translate(hookX, hookY);
             ctx.rotate(wiggleAngle);
+            if (caughtFish.isRare) {
+                ctx.shadowColor = "#ffd700";
+                ctx.shadowBlur  = 25 + Math.sin(time) * 10;
+            }
 
             ctx.fillStyle = caughtFish.color;
             ctx.beginPath();
@@ -955,6 +965,19 @@
             ctx.textAlign = "center";
             ctx.fillText("⚠️ ĐỘ CĂNG DÂY (" + Math.floor(tension) + "%)", canvas.width / 2, canvas.height - 67);
         }
+
+        // 9. Chữ "+kg" bay lên rồi mờ dần
+        floatTexts.forEach(t => {
+            ctx.globalAlpha = t.life / 60;
+            ctx.fillStyle = t.color;
+            ctx.font = "bold 28px 'Segoe UI', sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(t.text, t.x, t.y);
+            t.y -= 1.5;
+            t.life--;
+        });
+        ctx.globalAlpha = 1;
+        floatTexts = floatTexts.filter(t => t.life > 0);
     }
 
     function gameLoop() {
